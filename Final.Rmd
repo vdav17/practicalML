@@ -1,0 +1,62 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+---
+title: 'Practical Machine Learning'
+output:
+pdf_document: default
+html_document:
+keep_md: yes
+---
+
+### Instructions
+####The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
+
+####Load the data and caret
+```{r p1, echo=TRUE, results="show", message=FALSE}
+trainingset <- read.csv(url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"), na.strings=c("NA","#DIV/0!", ""))
+testingset <- read.csv(url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"), na.strings=c("NA","#DIV/0!", ""))
+library('caret')
+```
+####Review the data, Delete missing values and non important variables
+```{r p2, echo=TRUE, results="show", message=FALSE}
+# Check the data
+summary(trainingset)
+# Delete columns with all missing values
+trainingset<-trainingset[,colSums(is.na(trainingset)) == 0]
+testingset <-testingset[,colSums(is.na(testingset)) == 0]
+trainingset   <-trainingset[,-c(1:7)]
+testingset <-testingset[,-c(1:7)]
+```
+####Set seed for reproducibility and split 80-20 training and test
+```{r p3, echo=TRUE, results="show", message=FALSE}
+set.seed(62433)
+subsamples <- createDataPartition(y=trainingset$classe, p=0.80, list=FALSE)
+subTraining <- trainingset[subsamples, ] 
+subTesting <- trainingset[-subsamples, ]
+```
+
+####Train random forest
+```{r p4, echo=TRUE, results="show", message=FALSE}
+mod_rf <- train(classe ~ ., data = subTraining, method = "rf")
+prediction1 <- predict(mod_rf, subTesting)
+confusionMatrix(subTesting$classe,prediction1)
+plot(mod_rf)
+```
+
+####Train decision tree
+```{r p5, echo=TRUE, results="show", message=FALSE}
+mod_dt <- train(classe ~ ., data = subTraining, method = "rpart")
+prediction2 <- predict(mod_dt, subTesting)
+confusionMatrix(prediction2, subTesting$classe)
+plot(mod_dt)
+```
+
+####Train lda
+```{r p6, echo=TRUE, results="show", message=FALSE}
+mod_lda <- train(classe ~ ., data = subTraining, method = "lda")
+prediction3 <- predict(mod_lda, subTesting)
+confusionMatrix(prediction3, subTesting$classe)
+```
+
+#### As seen in the confusion matrix and as expected, the random forest perform better. It scored 100 in the quiz and in the statistics you can see an accuaracy of 0.9954, higer than the others, if we take the error as 1-Accuaracy the its almost 0, and I expect the out off sample error to be higher, but still pretty low. Also the plots show for the random forest the point where the parameter selection makes the accuaracy decrase
